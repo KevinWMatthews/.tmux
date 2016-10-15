@@ -1,0 +1,72 @@
+#!/bin/sh
+
+# first check if a session is already running
+echo "checking for existing session: dev"
+tmux has-session -t dev
+
+# The ? variable holds the exit status of the previously executed command
+if [ $? -eq 0 ]
+then
+    echo "tmux session dev already running!"
+    tmux -2 att -d
+    exit
+fi
+
+echo "starting a new tmux session: dev"
+
+# Clear existing log files
+rm -f ~/tmux_logs/build_shell_tmux.log
+rm -f ~/tmux_logs/git_shell_tmux.log
+rm -f ~/tmux_logs/usb_minicom_tmux.log
+rm -f ~/tmux_logs/serial_minicom_tmux.log
+
+# Change to home directory and run the tmux server
+cd ~/src/blackfin/uClinux-dist.2009
+tmux start-server
+
+# Create windows and panes
+tmux new-session -d -s dev -n vim
+tmux new-window -t dev:2 -n shell
+tmux split-window -t dev:shell -h
+tmux new-window -t dev:3 -n minicom
+tmux split-window -t dev:minicom -h
+
+# Start applications on each window's pane
+# C-l clears the screen.
+tmux send-keys -t dev:vim 'cd user/cyberdata/sip_devices' Enter
+tmux send-keys -t dev:vim 'printf "\033]2;vim\033\\"' Enter C-l
+tmux send-keys -t dev:vim 'vim .' Enter
+
+tmux send-keys -t dev:shell.0 'printf "\033]2;build\033\\"' Enter C-l
+
+tmux send-keys -t dev:shell.1 'printf "\033]2;git\033\\"' Enter
+tmux send-keys -t dev:shell.1 'cd user/cyberdata/sip_devices' Enter C-l
+tmux send-keys -t dev:shell.1 'git br' Enter
+tmux send-keys -t dev:shell.1 'git s' Enter
+
+tmux send-keys -t dev:minicom.0 'printf "\033]2;usb\033\\"' Enter C-l
+tmux send-keys -t dev:minicom.0 'sudo minicom -D /dev/ttyUSB0' Enter
+
+tmux send-keys -t dev:minicom.1  'printf "\033]2;serial\033\\"' Enter C-l
+tmux send-keys -t dev:minicom.1 'sudo minicom' Enter
+
+# Select a window and attach the session
+tmux select-window -t dev:shell
+tmux attach-session -d -t dev
+
+# Documentation:
+# new-session options:
+# -d    detach any other clients that may be attached to this session
+# -s    session name
+# -n    window name
+
+# new-window options:
+# -t    session we're going to attach to (target)
+# -n    window name
+# -h    split window horizontally, [x|x]
+
+# send-keys options:
+# -t    target pane
+
+# The printf with escape characters is the documented way to rename a page.
+# See the man pages under NAMES AND TITLES. Weird.

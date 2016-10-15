@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# first check if a session is already running
+echo "checking for existing session: support"
+tmux has-session -t support
+
+# The ? variable holds the exit status of the previously executed command
+if [ $? -eq 0 ]
+then
+    echo "tmux session support already running!"
+    tmux -2 att -d
+    exit
+fi
+
+echo "starting a new tmux session: support"
+
+# Change to home directory and run the tmux server
+cd ~
+tmux start-server
+
+# Create windows and panes
+tmux new-session -d -s support -n build_scripts
+tmux new-window -t support:2 -n tftpboot
+tmux new-window -t support:3 -n ack
+tmux new-window -t support:4 -n ruby_scripts
+
+# Start applications on each window's pane
+# C-m seems to be a <CR>.
+# C-l clears the screen.
+tmux send-keys -t support:2 'cd /tftpboot' C-m C-l
+tmux send-keys -t support:3 'cd ~/src/blackfin/uClinux-dist.2009/user/cyberdata/sip_devices' C-m C-l
+tmux send-keys -t support:4 'cd ~/cyberdata/ruby/dispatcher/scripts' C-m C-l
+
+# Select a window and attach the session
+tmux select-window -t support:1
+tmux attach-session -d -t support
+
+# Documentation:
+# new-session options:
+# -d    detach any other clients that may be attached to this session
+# -s    session name
+# -n    window name
+
+# new-window options:
+# -t    session we're going to attach to (target)
+# -n    window name
+# -h    split window horizontally, [x|x]
+
+# send-keys options:
+# -t    target pane
